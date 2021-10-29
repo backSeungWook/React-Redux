@@ -1,70 +1,302 @@
-# Getting Started with Create React App
+# Redux
+예측 가능한 상태 컨테이너  
+https://ko.redux.js.org/introduction/getting-started
+```
+npm i redux
+```
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Action
+장소로 data를 보내는 방법
+두 가지 형태의 액션
+type 만이 필수 프로퍼티이며, type 은 문자열이고, 함수를 통해 액션을 생성
+```js
+{ type: 'TEST' } // payload 없는 액션
+{ type: 'TEST', params: 'hello' } // payload 있는 액션
+```
 
-## Available Scripts
+## 리듀서
+action을 통해 어떠한 행동을 정의했다면, 그 결과 어플리케이션의 상태가 어떻게 바뀌는지는 특정하게 되는 함수
+```js
+function 리듀서(previousState,action){
+  return newState
+}
+//인자로 들어오는 previousState와 리턴되는 newSate는 다른 참조를 가지도록 해야한다.
+```
 
-In the project directory, you can run:
+## Store
+### `createStore`
+스토어를 만드는 함수
+```js
+import {createStore} from 'redux'
 
-### `npm start`
+createStore<S>(
+  reducer: Reducer<S>,
+  preloadedState: S,
+  enhancer?: StoreEnhancer<S>
+): Store<S>;
+```
+```js
+import {createStore} from 'redux'
+import {todoApp} from './reducers'
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+const store = createStore(todoApp)
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+export default store
+```
+### `getState`
+현재 store의 State를 가지고 옴.
 
-### `npm test`
+### `dispatch`
+인자로 Action을 넣어서 Store의 상태를 변경.
+```js
+import {addTodo} from './redux/actions'
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+store.dispatch(addTodo("coding"))
+```
 
-### `npm run build`
+### `subscribe`
+subscribe store 변경을 감지  
+리턴으로 unsubscribe()을 리턴 / unsubscribe 을 호출하면 subscribe 제거  
+subscribe 제거: subscribe메소드가 실행이 안됨 / 변경을 감지 하지 않음.
+```js
+const unsubscribe = store.subscribe(()=>{
+  console.log(store.getState())
+})
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## `combineReducers`
+https://lunit.gitbook.io/redux-in-korean/recipes/structuringreducers/usingcombinereducers  
+리덕스 리듀서를 작성할 때 가장 일반적인 용례를 단순화 하는 유틸리티 함수.(하위리덕스를 합치는 역활)   
+모든 애플리케이션에서 사용할 필요는 없으며 모든 가능한 시나리오를 처리하지 않음.   
+이 함수를 사용하지 않고도 리듀서로직을 작성할 수 있으며, combineReducers를 사용하지 않는 경우는 보통 커스텀 리듀서를 직접 만들어줘야 한다.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `npm run eject`
+## Redux를 React에 연결
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+### react-redux 안쓰고 연결
+단일 store 를 만들고, subscribe 와 getState 를 이용하여,   
+변경되는 state 데이터를 얻어, props 로 계속 아래로 전달   
+componentDidMount - subscribe`(store 변경을 감지)`   
+componentWillUnmount - unsubscribe`(subscribe 제거)`
+```js
+//index.js
+<App store={store}/>
+```
+```js
+//hooks/useReduxState.js 단일 스토어 생성
+export default function useReduxState(){
+  const store = useContext(ReduxContext)
+  const [state,setState]=useState(store.getState())
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+  useEffect(()=>{
+    const unsubscribe = store.subscribe(()=>{
+      setState(store.getState())
+    })
+    return ()=>{
+      unsubscribe()
+    }
+  },[store])
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+  return state
+}
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+```
+Context를 이용하여 전역으로 Store 전달하기
+```js
+//index.js
+<ReduxContext.Provider value={store}>
+  <App/>
+</ReduxContext.Provider>
+```
 
-## Learn More
+### react-redux 사용.
+```
+npm i react-redux
+```
+Provider 컴포넌트를 제공해며, connect 함수를 통해 "컨테이너"를 만든다.
+컨테이너는 스토어의 state 와 dispatch(액션) 를 연결한 컴포넌트에 props 로 넣어주는 역할
+```js
+//컨테이너 사용방식
+//첫번째 함수의인자는 Config /2번째 함수의 인자에는 연결할 함수명
+const TodoListContainer = connect(
+  StateToProps,//state를 받아서 Props로 반환
+  DispatchToProps//Dispatch를 받아서 Props로 반환
+)(TodoList)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```
+useSelector: connect함수를 이용하지 않고 리덕스의 state를 조회할 수 있다.  
+```js
+import { useSelector } from 'react-redux' 
+const user = useSelector(state => state.user);
+```
+useDispatch: 생성한 action을 useDispatch를 통해 발생시킬 수 있다
+```js
+//만들어둔 액션생성 함수를 import한다.
+import { change_user } from '../modules/user'
+import { useDispatch } from 'react-redux' 
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+const User = () => { 
+  ... 
+  const dispatch = useDispatch(); dispatch(change_user(user)); 
+  ...
+}
+```
 
-### Code Splitting
+## Redux 비동기 처리
+API 호출 시점은 componentDidMount 시점에서 호출.
+```js
+//UserListContainer.js 비동기는 react-redux 부분에서 처리(유지보수).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+ const getUsers = useCallback(async () =>{
+      try{
+        dispatch(getUsersStart())
+        const res = await axios.get('https://api.github.com/users')
+        dispatch(getUsersSuccess(res.data))
+      }catch(error){
+        dispatch(getUsersFail(error))
+      }  
+    },[dispatch])
+```
 
-### Analyzing the Bundle Size
+## 미들웨어
+디스패치의 앞뒤에 코드를 추가할수 있게 해준다.
+미들웨어가 여러개면 미들웨어가 순차적으로 실행
+```js
+//redux/store.js
+import {applyMiddleware, createStore} from 'redux'
+import todoApp from './reducers/reducer'
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+function middleware1(store){
+  console.log('middleware1',0)
+  return(next) =>{
+    console.log('middleware1',1)
+    return action =>{
+      console.log('middleware1',2)
+      const returnValue = next(action)
+      console.log('middleware1',3)
+      return returnValue
+    }
+  }
+}
+const store = createStore(todoApp,applyMiddleware(middleware1))
 
-### Making a Progressive Web App
+export default store
+```
+### redux-devtools
+리덕스 개발용 툴 
+```
+npm i redux-devtools-extension -D
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+### `redux-thunk`
+https://github.com/reduxjs/redux-thunk  
+리덕스에서 비동기 처리를 위한 라이브러리  
+액션 생성자를 활용하여 비동기 처리   
+액션 생성자가 액션을 리턴하지 않고, 함수를 리턴함   
+```
+npm i redux-thunk
+```
+```js
+//store.js
+//미들웨어에 thunk 설정.
+import thunk from 'redux-thunk'
+const store = createStore(todoApp,composeWithDevTools(applyMiddleware(thunk)))
+```
+```js
+//actions.js
+export function getUsersThunk(){
+  
+  return async (dispatch)=>{
+    try{
+      dispatch(getUsersStart())
+      const res = await axios.get('https://api.github.com/users')
+      dispatch(getUsersSuccess(res.data))
+    }catch(error){
+      dispatch(getUsersFail(error))
+    }
+  }
+}
 
-### Advanced Configuration
+//actions 호출
+//UserListContainer.jsx
+//미들웨어 thunk 사용으로 재구성.
+const getUsers = useCallback(()=>{
+  dispatch(getUsersThunk())  
+},[dispatch])
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+```
 
-### Deployment
+### redux-promise-middleware
+비동기 처리를 위한 라이브러리
+https://pburtchaell.gitbook.io/redux-promise-middleware type이 변경 되어서 적용이 됨   
+뒤에 ex) GET_USERS_(PENDING,FULFILLED,REKECTED)붙어서 type이 재정의 됨.   
+PENDING : START   
+FULFILLED : SUCCESS   
+REKECTED : FAIL   
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```
+npm i redux-promise-middleware
+```
 
-### `npm run build` fails to minify
+```js
+//store.js
+import promise from 'redux-promise-middleware'
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+const store = createStore(todoApp,composeWithDevTools(applyMiddleware(promise)))
+```
+
+```js
+//적용
+//actions.js
+const GET_USERS='GET_USERS'
+//type이 변경 되어서 적용이 됨에 따라 type 재설정
+export const GET_USERS_PENDING='GET_USERS_PENDING' //start
+export const GET_USERS_FULFILLED='GET_USERS_FULFILLED'//Success
+export const GET_USERS_REJECTED='GET_USERS_REJECTED'//Fail
+
+export function getUsersPromise(){
+  return {
+    type:GET_USERS,
+    //payload Promise 로직 작성.
+    payload: async ()=>{
+      const res = await axios.get('https://api.github.com/users') 
+      return res.data
+    }
+  }
+}
+
+
+//type이 변경 되어서 적용이 됨에 따라 type 리턴 변경
+// reducers/users.js
+if(action.type === GET_USERS_START || action.type === GET_USERS_PENDING){
+    return{
+      ...state,
+      loading:true,
+      error:null
+    }
+  }
+
+  if(action.type === GET_USERS_FULFILLED){
+    return{
+      ...state,
+      loading:false,
+      data:action.payload
+    }
+  }
+
+  if(action.type === GET_USERS_REJECTED){
+    return{
+      ...state,
+      loading:false,
+      error:action.payload
+    }
+  }
+
+//actions 호출
+//미들웨어 promise-middleware 사용으로 재구성.
+//UserListContainer.jsx
+const getUsers = useCallback(()=>{
+  dispatch(getUsersPromise())  
+},[dispatch])
+```

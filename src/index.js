@@ -3,10 +3,27 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import store from './redux/store'
+
+import {Provider} from 'react-redux'
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    {/*
+    react-redux 사용 안했을 때
+    Context 로 연결
+    import ReduxContext from './contexts/ReduxContext';
+    
+    <ReduxContext.Provider value={store}>
+      <App/>
+    </ReduxContext.Provider>
+    */}
+
+    {/*react-redux 사용 했을 때 */}
+    <Provider store={store}>
+      <App/>
+    </Provider>
+    
   </React.StrictMode>,
   document.getElementById('root')
 );
