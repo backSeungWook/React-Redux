@@ -1,8 +1,12 @@
 import {applyMiddleware, createStore} from 'redux'
-import todoApp from './reducers/reducer'
+import todoApp from './modules/reducer'
 import {composeWithDevTools} from 'redux-devtools-extension'
 import thunk from 'redux-thunk'
 import promise from 'redux-promise-middleware'
+import history from '../history'
+import { routerMiddleware } from 'connected-react-router'
+import createSagaMiddleware from '@redux-saga/core'
+import rootSage from './modules/rootSage'
 
 /*
 function middleware1(store){
@@ -33,6 +37,19 @@ function middleware2(store){
 
 //const store = createStore(todoApp,applyMiddleware(middleware1,middleware2))//로그는 middleware1 2> middleware2 2> middleware2 3> middleware1 3>
 
-const store = createStore(todoApp,composeWithDevTools(applyMiddleware(thunk,promise)))
+const sageMiddleware = createSagaMiddleware()
 
+const store = createStore(
+  todoApp,composeWithDevTools(
+    applyMiddleware(
+        thunk.withExtraArgument({history}),
+        promise,
+        routerMiddleware(history),
+        sageMiddleware
+      )
+    )
+  )
+
+  //createStore 후
+  sageMiddleware.run(rootSage)
 export default store

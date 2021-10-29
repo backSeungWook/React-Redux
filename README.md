@@ -70,7 +70,16 @@ https://lunit.gitbook.io/redux-in-korean/recipes/structuringreducers/usingcombin
 리덕스 리듀서를 작성할 때 가장 일반적인 용례를 단순화 하는 유틸리티 함수.(하위리덕스를 합치는 역활)   
 모든 애플리케이션에서 사용할 필요는 없으며 모든 가능한 시나리오를 처리하지 않음.   
 이 함수를 사용하지 않고도 리듀서로직을 작성할 수 있으며, combineReducers를 사용하지 않는 경우는 보통 커스텀 리듀서를 직접 만들어줘야 한다.
-
+```js
+//redux/modules/reducer.js
+//하위리덕스를 합치는 역활: combineReducers
+const reducer = combineReducers({
+  todos,
+  filter,
+  users,
+  router:connectRouter(history)
+})
+```
 
 ## Redux를 React에 연결
 
@@ -110,7 +119,7 @@ Context를 이용하여 전역으로 Store 전달하기
 </ReduxContext.Provider>
 ```
 
-### react-redux 사용.
+### `react-redux 사용.`
 ```
 npm i react-redux
 ```
@@ -125,12 +134,12 @@ const TodoListContainer = connect(
 )(TodoList)
 
 ```
-useSelector: connect함수를 이용하지 않고 리덕스의 state를 조회할 수 있다.  
+`useSelector`: connect함수를 이용하지 않고 리덕스의 state를 조회할 수 있다.  
 ```js
 import { useSelector } from 'react-redux' 
 const user = useSelector(state => state.user);
 ```
-useDispatch: 생성한 action을 useDispatch를 통해 발생시킬 수 있다
+`useDispatch`: 생성한 action을 useDispatch를 통해 발생시킬 수 있다
 ```js
 //만들어둔 액션생성 함수를 import한다.
 import { change_user } from '../modules/user'
@@ -161,9 +170,11 @@ API 호출 시점은 componentDidMount 시점에서 호출.
 
 ## 미들웨어
 디스패치의 앞뒤에 코드를 추가할수 있게 해준다.
-미들웨어가 여러개면 미들웨어가 순차적으로 실행
+미들웨어가 여러개면 미들웨어가 순차적으로 실행   
+비동기처리는 미들웨어 쪽에서 처리
 ```js
 //redux/store.js
+
 import {applyMiddleware, createStore} from 'redux'
 import todoApp from './reducers/reducer'
 
@@ -183,7 +194,7 @@ const store = createStore(todoApp,applyMiddleware(middleware1))
 
 export default store
 ```
-### redux-devtools
+### `redux-devtools`
 리덕스 개발용 툴 
 ```
 npm i redux-devtools-extension -D
@@ -299,4 +310,174 @@ if(action.type === GET_USERS_START || action.type === GET_USERS_PENDING){
 const getUsers = useCallback(()=>{
   dispatch(getUsersPromise())  
 },[dispatch])
+```
+
+## `Ducks Pattern`
+https://github.com/JisuPark/ducks-modular-redux
+규칙
+1. export default 함수명을 항상 reducer란 이름으로 정의
+1. 항상 모듈의 action 생성자들을 함수형태로 export 
+1. 항상 npm-module-or-app/reducer/ACTION_TYPE 형태의 action 타입을 가져야한다
+```js
+//ex
+//redux/modules/filter.js
+const SHOW_ALL='redux-start/filter/SHOW_ALL'
+```
+1. 어쩌면 action 타입들을 UPPER_SNAKE_CASE로 export 할 수 있으며. 만약, 외부 reducer가 해당 action들이 발생하는지 계속 기다리거나, 재사용할 수 있는 라이브러리로 퍼블리싱할 경우에 말이죠.
+
+
+```js
+//액션 Type, 액션 생성 함수, 초기값, 리듀서
+
+//액션 Type 정의
+//3. 항상 npm-module-or-app/reducer/ACTION_TYPE 형태의 action 타입을 가져야한다
+const SHOW_ALL='redux-start/filter/SHOW_ALL'
+const SHOW_COMPLETE='redux-start/filter/SHOW_COMPLETE'
+
+//액션 생성 함수
+//2. 항상 모듈의 action 생성자들을 함수형태로 export 
+export function showAll(){
+  return {type:SHOW_ALL}
+}
+
+export function showComplete(){
+  return {type:SHOW_COMPLETE}
+}
+
+//초기값.
+const initialState = 'ALL'
+
+
+//리듀서
+// 1. export default 함수명을 항상 reducer란 이름으로 정의
+export default function reducer(previousState=initialState,action){
+  if(action.type === SHOW_COMPLETE){
+    return 'COMPLETE'
+  }
+
+  if(action.type === SHOW_ALL){
+    return 'ALL'
+  }
+  return previousState
+}
+```
+
+## `connected-react-router`
+react-router-dom 과 redux 같이 사용하기 위한 라이브러리
+```
+npm i connected-react-router
+```
+```js
+//App.js
+import { ConnectedRouter } from 'connected-react-router';
+...
+
+function App() {
+  return (
+    <ConnectedRouter history={history}>
+      <Route path='/' exact component={Home} />
+      <Route path='/todos' component={Todos} />
+      <Route path='/users' component={Users}  />
+    </ConnectedRouter>
+  );
+}
+```
+
+## `redux-saga`
+https://redux-saga.js.org  
+제너레이터 객체를 만들어 내는 제네레이터 생성 함수를 이용   
+리덕스 사가 미들웨어를 설정하고, 내가 만든 사가 함수를 등록한 후 사가 미들웨어를 실행   
+등록된 사가 함수를 실행할 액션을 디스패치  
+```
+ npm i redux-saga
+```
+```js
+//sage 함수 정의
+//redux/modules/users.js
+//sage 함수는 function* 함수앞에 *추가
+import { push } from "connected-react-router";
+import {put,delay,call} from 'redux-saga/effects'
+
+//redux-saga
+const GET_USERS_SAGA_START='GET_USERS_SAGA_START'
+
+function* getUserSaga(action){
+  try{
+ 
+    yield put(getUsersStart())// =dispatch(getUsersStart())
+    
+    yield delay(2000)//=await sleep(2000)
+    const res = yield call(axios.get,'https://api.github.com/users')// = const res = await axios.get('https://api.github.com/users')
+  
+    yield put(getUsersSuccess(res.data)) // = dispatch(getUsersSuccess(res.data))
+    
+    yield put(push('/')) // =history.push('/')
+  }catch(error){
+    yield put(getUsersFail(error)) // = dispatch(getUsersFail(error))
+  }
+}
+
+//sage를 사용 하기 위한 함수
+export  function getUserSagaStart(){
+  return{
+    type:GET_USERS_SAGA_START
+  }
+}
+
+// saga 등록
+export function* usersSage(){
+  yield takeEvery('GET_USERS_SAGA_START',getUserSaga)
+}
+```
+
+```js
+//rootSage Sage들의 집합소
+import { all } from "@redux-saga/core/effects";
+import { usersSage } from "./users";
+
+export default function* rootSage(){
+  yield all([usersSage()])
+}
+
+//store.js
+import createSagaMiddleware from '@redux-saga/core'
+import rootSage from './modules/rootSage'
+
+const sageMiddleware = createSagaMiddleware()
+
+const store = createStore(
+  todoApp,composeWithDevTools(
+    applyMiddleware(
+        ...        
+        sageMiddleware
+      )
+    )
+  )
+
+  //createStore 후
+  sageMiddleware.run(rootSage)
+```
+
+## `redux-actions`
+https://github.com/redux-utilities/redux-actions
+```
+npm i redux-actions
+```
+```js
+import {createActions,  handleActions} from 'redux-actions'
+
+//액션 Type 정의 , 액션 생성 함수
+export const {SHOW_ALL,SHOW_COMPLETE} = createActions('SHOW_ALL','SHOW_COMPLETE',{prefix:'redux-start/filter'})
+
+//초기값.
+const initialState = 'ALL'
+
+//리듀서
+const reducer = handleActions({
+  SHOW_ALL:(state,action)=>'ALL',
+  SHOW_COMPLETE:()=>'SHOW_COMPLETE'
+},initialState,{prefix:'redux-start/filter'})
+
+export default reducer
+
 ```

@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import UserList from "../components/UserList";
-import { getUsersPromise, getUsersThunk } from "../redux/actions";
+import { getUserSagaStart, getUsersPromise, getUsersThunk } from "../redux/modules/users";
 
 
 export default function UserListContainer(){
@@ -25,8 +25,9 @@ export default function UserListContainer(){
   
   //미들웨어 thunk 사용으로 재구성.
   const getUsers = useCallback(()=>{
-    //dispatch(getUsersThunk())  
-    dispatch(getUsersPromise())  
+//    dispatch(getUsersPromise())  //redux-promise-middlewar 시영
+  //  dispatch(getUsersThunk()) //Thunk 사용
+    dispatch(getUserSagaStart()) //sage 사용
   },[dispatch])
 
   return <UserList users={users} getUsers={getUsers} />
